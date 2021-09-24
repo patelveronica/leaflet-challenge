@@ -1,29 +1,55 @@
 // Store our API endpoint as queryUrl.
-var queryUrl = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2021-01-01&endtime=2021-01-02&maxlongitude=-69.52148437&minlongitude=-123.83789062&maxlatitude=48.74894534&minlatitude=25.16517337";
+var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
 
 // Perform a GET request to the query URL/
 d3.json(queryUrl).then(function (data) {
-  // Once we get a response, send the data.features object to the createFeatures function.
-  createFeatures(data.features);
-});
-
-function createFeatures(earthquakeData) {
 
   // Define a function that we want to run once for each feature in the features array.
   // Give each feature a popup that describes the place and time of the earthquake.
-  function onEachFeature(feature, layer) {
+  function bindpopuptomarker(feature, layer) {
     layer.bindPopup(`<h3>${feature.properties.place}</h3><hr><p>${new Date(feature.properties.time)}</p>`);
   }
+  function generatecolor(earthquakedepth) {
+    if (earthquakedepth > 100) {
+      return "#60397f"
+    }
+    if (earthquakedepth > 80) {
+      return "#734498"
+    }
+    if (earthquakedepth > 60) {
+      return "#864fb2"
+    }
+    if (earthquakedepth > 40) {
+      return "#9a5acb"
+    }
+    if (earthquakedepth > 20) {
+      return "#ad66e5"
+    }
 
+  }
+
+  function generateearthquakestyle(feature, layer) {
+    console.log(feature)
+    return {
+      color: generatecolor(feature.geometry.coordinates[2])
+    }
+  }
+
+  function generatemarker (feature, latlong){
+    return L.circleMarker(latlong)
+  }
   // Create a GeoJSON layer that contains the features array on the earthquakeData object.
   // Run the onEachFeature function once for each piece of data in the array.
-  var earthquakes = L.geoJSON(earthquakeData, {
-    onEachFeature: onEachFeature
+  var earthquakes = L.geoJSON(data.features, {
+    onEachFeature: bindpopuptomarker,
+    style: generateearthquakestyle,
+    pointToLayer: generatemarker
   });
-
+  
   // Send our earthquakes layer to the createMap function/
   createMap(earthquakes);
-}
+
+});
 
 function createMap(earthquakes) {
 
@@ -44,15 +70,15 @@ function createMap(earthquakes) {
 
   // Create an overlay object to hold our overlay.
   var overlayMaps = {
-    Earthquakes: earthquakes
+    "Earthquakes": earthquakes
   };
 
   // Create our map, giving it the streetmap and earthquakes layers to display on load.
   var myMap = L.map("map", {
     center: [
-      37.09, -95.71
+      0, 0
     ],
-    zoom: 5,
+    zoom: 2,
     layers: [street, earthquakes]
   });
 
