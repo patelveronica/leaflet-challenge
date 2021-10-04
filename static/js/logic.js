@@ -5,37 +5,56 @@ var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_da
 d3.json(queryUrl).then(function (data) {
 
   // Define a function that we want to run once for each feature in the features array.
-  // Give each feature a popup that describes the place and time of the earthquake.
+  // Give each feature a popup that describes the place and time of the earthquake.  
   function bindpopuptomarker(feature, layer) {
-    layer.bindPopup(`<h3>${feature.properties.place}</h3><hr><p>${new Date(feature.properties.time)}</p>`);
+    layer.bindPopup(
+      "Earthquake magnitude: " + feature.properties.mag
+      + "<br>Earthquake Location:<br> " + feature.properties.place
+      + "<br>Depth: " + feature.geometry.coordinates[2]);
   }
+
+  // create function to show color for earthquake
   function generatecolor(earthquakedepth) {
-    if (earthquakedepth > 100) {
+    if (earthquakedepth > 90) {
       return "#60397f"
     }
-    if (earthquakedepth > 80) {
+    if (earthquakedepth > 70) {
       return "#734498"
     }
-    if (earthquakedepth > 60) {
+    if (earthquakedepth > 50) {
       return "#864fb2"
     }
-    if (earthquakedepth > 40) {
+    if (earthquakedepth > 30) {
       return "#9a5acb"
     }
-    if (earthquakedepth > 20) {
+    if (earthquakedepth > 10) {
       return "#ad66e5"
     }
 
   }
-
+  // create the style
   function generateearthquakestyle(feature, layer) {
     console.log(feature)
     return {
-      color: generatecolor(feature.geometry.coordinates[2])
-    }
+      opacity: 1,
+      fillOpacity: 1,
+      fillColor: generatecolor(feature.geometry.coordinates[2]),
+      color: "#000000",
+      radius: getRadius(feature.properties.mag),
+      stroke: true,
+      weight: 1
+    };
   }
 
-  function generatemarker (feature, latlong){
+  // get the radius of the earthquake based on its magnitude
+  function getRadius(magnitude) {
+    if (magnitude == 0) {
+      return 1;
+    }
+    return magnitude * 4;
+  }
+
+  function generatemarker(feature, latlong) {
     return L.circleMarker(latlong)
   }
   // Create a GeoJSON layer that contains the features array on the earthquakeData object.
@@ -45,10 +64,9 @@ d3.json(queryUrl).then(function (data) {
     style: generateearthquakestyle,
     pointToLayer: generatemarker
   });
-  
+
   // Send our earthquakes layer to the createMap function/
   createMap(earthquakes);
-
 });
 
 function createMap(earthquakes) {
@@ -81,12 +99,34 @@ function createMap(earthquakes) {
     zoom: 2,
     layers: [street, earthquakes]
   });
+  earthquakes.addTo(myMap);
 
-  // Create a layer control.
-  // Pass it our baseMaps and overlayMaps.
-  // Add the layer control to the map.
+  // Create a layer control.Pass it our baseMaps and overlayMaps.Add the layer control to the map.   
   L.control.layers(baseMaps, overlayMaps, {
     collapsed: false
   }).addTo(myMap);
 
+  //  create a legend and add it to the map
+  var legend = L.control({ position: 'bottomright' });
+
+  legend.onAdd = function () {
+    var div = L.DomUtil.create('div', 'info legend');
+    var grades = [10, 30, 50, 70, 90];
+    var colors = ["#60397f", "#734498", "#864fb2", "#9a5acb", "#ad66e5"];
+
+    //  loop throught the depth and generate a lable with c color 
+    for (var i = 0; i < grades.length; i++) {
+      div.innerHTML += "<i style='background: "
+        + colors[i]
+        + "'></i> "
+        + grades[i]
+        + (grades[i + 1] ? "&ndash;" + grades[i + 1] + "<br>" : "+");
+    }
+    return div;
+  };
+
+  // We add our legend to the map.
+  legend.addTo(myMap);
+
 }
+
